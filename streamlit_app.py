@@ -1,11 +1,10 @@
-# streamlit_app.py
 import streamlit as st
 from app.cliente import ClienteRepository
 from app.producto import ProductoRepository
 from app.pedido import Pedido
 from app.facturacion import calcular_factura
 
-# Repositorios en memoria (persisten mientras la app está viva)
+# Repositorios en memoria
 if "clientes_repo" not in st.session_state:
     st.session_state["clientes_repo"] = ClienteRepository()
 if "productos_repo" not in st.session_state:
@@ -21,18 +20,24 @@ st.title("CoffeeManager - Gestión de Pedidos")
 
 menu = st.sidebar.selectbox("Menú", ["Registrar cliente", "Registrar producto", "Crear pedido", "Listar clientes", "Listar productos"])
 
+# Registrar Cliente
 if menu == "Registrar cliente":
     st.header("Registrar cliente")
     nombre = st.text_input("Nombre")
+    correo = st.text_input("Correo")
     telefono = st.text_input("Teléfono")
     direccion = st.text_input("Dirección")
     if st.button("Guardar cliente"):
-        if not nombre:
-            st.warning("Ingrese un nombre")
+        if not nombre or not correo:
+            st.warning("Nombre y correo son obligatorios")
         else:
-            c = clientes_repo.crear(nombre, telefono, direccion)
-            st.success(f"Cliente registrado (ID {c.id})")
+            c = clientes_repo.crear(nombre, correo, telefono, direccion)
+            if c:
+                st.success(f"Cliente registrado (ID {c.id})")
+            else:
+                st.error("Cliente ya existe")
 
+# Registrar Producto
 elif menu == "Registrar producto":
     st.header("Registrar producto")
     nombre = st.text_input("Nombre del producto")
@@ -42,8 +47,12 @@ elif menu == "Registrar producto":
             st.warning("Ingrese nombre")
         else:
             p = productos_repo.crear(nombre, precio)
-            st.success(f"Producto registrado (ID {p.id})")
+            if p:
+                st.success(f"Producto registrado (ID {p.id})")
+            else:
+                st.error("Producto ya existe")
 
+# Crear Pedido
 elif menu == "Crear pedido":
     st.header("Crear pedido")
     clientes = clientes_repo.listar()
@@ -53,7 +62,7 @@ elif menu == "Crear pedido":
     if not productos:
         st.info("No hay productos. Registra alguno antes.")
 
-    cliente_sel = st.selectbox("Cliente", options=[(c.id, c.nombre) for c in clientes], format_func=lambda x: f"{x[1]}" if x else "")
+    cliente_sel = st.selectbox("Cliente", options=[(c.id, c.nombre) for c in clientes], format_func=lambda x: x[1] if x else "")
     producto_sel = st.selectbox("Producto", options=[(p.id, p.nombre, p.precio) for p in productos], format_func=lambda x: f"{x[1]} - ${x[2]:.2f}" if x else "")
     cantidad = st.number_input("Cantidad", min_value=1, value=1, step=1)
     if st.button("Agregar al pedido"):
@@ -61,7 +70,6 @@ elif menu == "Crear pedido":
             cliente_id = cliente_sel[0]
             producto_id = producto_sel[0]
             producto = productos_repo.obtener(producto_id)
-            # Si no existe un pedido activo para este cliente, crear
             pedido = pedidos_store.get(cliente_id)
             if pedido is None:
                 pedido = Pedido(id=len(pedidos_store)+1, cliente_id=cliente_id)
@@ -81,11 +89,13 @@ elif menu == "Crear pedido":
             del pedidos_store[cid]
             st.experimental_rerun()
 
+# Listar Clientes
 elif menu == "Listar clientes":
     st.header("Clientes")
     for c in clientes_repo.listar():
-        st.write(f"{c.id} - {c.nombre} | Tel: {c.telefono} | Dir: {c.direccion}")
+        st.write(f"{c.id} - {c.nombre} | Correo: {c.correo} | Tel: {c.telefono} | Dir: {c.direccion}")
 
+# Listar Productos
 elif menu == "Listar productos":
     st.header("Productos")
     for p in productos_repo.listar():

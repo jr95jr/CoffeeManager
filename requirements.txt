@@ -1,2 +1,4 @@
-streamlit>=1.20
-pytest>=7.0
+streamlit
+sqlalchemy
+pymysql
+pytest

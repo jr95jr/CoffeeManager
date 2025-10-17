@@ -1,21 +1,26 @@
 from sqlalchemy import Column, Integer, ForeignKey, Float
 from sqlalchemy.orm import relationship
-from app.db import Base, engine, SessionLocal
+from .db import Base
 from datetime import datetime
-from app.cliente import Cliente
-from app.producto import Producto
 
-class Pedido(Base):
-    __tablename__ = "pedidos"
+class PedidoItem:
+    def __init__(self, producto, cantidad):
+        self.producto = producto
+        self.cantidad = cantidad
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    cliente_id = Column(Integer, ForeignKey("clientes.id"))
-    producto_id = Column(Integer, ForeignKey("productos.id"))
-    cantidad = Column(Integer, nullable=False)
-    fecha = Column(Float, default=datetime.utcnow)
+class Pedido:
+    def __init__(self, id, cliente_id):
+        self.id = id
+        self.cliente_id = cliente_id
+        self.items = []
 
-    cliente = relationship("Cliente")
-    producto = relationship("Producto")
+    def agregar_producto(self, producto, cantidad):
+        # Si ya existe el producto, suma cantidad
+        for it in self.items:
+            if it.producto.id == producto.id:
+                it.cantidad += cantidad
+                return
+        self.items.append(PedidoItem(producto, cantidad))
 
-def crear_tabla():
-    Base.metadata.create_all(bind=engine)
+    def subtotal(self):
+        return sum(it.producto.precio * it.cantidad for it in self.items)

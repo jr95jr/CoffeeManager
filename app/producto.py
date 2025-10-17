@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.exc import IntegrityError
-from app.db import Base, engine, SessionLocal
+from .db import Base, engine, SessionLocal
 
+# Modelo Producto
 class Producto(Base):
     __tablename__ = "productos"
 
@@ -36,3 +37,21 @@ def obtener_productos():
     productos = session.query(Producto).all()
     session.close()
     return productos
+
+# Repository
+class ProductoRepository:
+    def __init__(self):
+        crear_tabla()
+
+    def crear(self, nombre, precio):
+        return agregar_producto(nombre, precio)
+
+    def listar(self):
+        return obtener_productos()
+
+    def obtener(self, producto_id):
+        productos = obtener_productos()
+        for p in productos:
+            if p.id == producto_id:
+                return p
+        return None

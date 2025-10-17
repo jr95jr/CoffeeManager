@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.exc import IntegrityError
-from app.db import Base, engine, SessionLocal
+from .db import Base, engine, SessionLocal
 
+# Modelo Cliente
 class Cliente(Base):
     __tablename__ = "clientes"
 
@@ -38,3 +39,21 @@ def obtener_clientes():
     clientes = session.query(Cliente).all()
     session.close()
     return clientes
+
+# Repository
+class ClienteRepository:
+    def __init__(self):
+        crear_tabla()
+
+    def crear(self, nombre, correo, telefono=None, direccion=None):
+        return agregar_cliente(nombre, correo, telefono, direccion)
+
+    def listar(self):
+        return obtener_clientes()
+
+    def obtener(self, cliente_id):
+        clientes = obtener_clientes()
+        for c in clientes:
+            if c.id == cliente_id:
+                return c
+        return None
