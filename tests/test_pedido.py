@@ -1,19 +1,29 @@
 import pytest
+from app.cliente import ClienteRepository
 from app.producto import ProductoRepository
-from app.pedido import Pedido
+from app.pedido import PedidoRepository
+
+@pytest.fixture
+def clientes_repo():
+    return ClienteRepository()
 
 @pytest.fixture
 def productos_repo():
     return ProductoRepository()
 
-def test_agregar_productos_y_subtotal(productos_repo):
-    p1 = productos_repo.crear("Café", 2.0)
-    p2 = productos_repo.crear("Té", 1.5)
+@pytest.fixture
+def pedidos_repo():
+    return PedidoRepository()
 
-    pedido = Pedido(id=1, cliente_id=1)
-    pedido.agregar_producto(p1, 2)  # 2*2 = 4
-    pedido.agregar_producto(p2, 3)  # 3*1.5 = 4.5
-    pedido.agregar_producto(p1, 1)  # ahora p1 total = 6
-
-    assert len(pedido.items) == 2
-    assert pedido.subtotal() == 10.5
+def test_crear_pedido(clientes_repo, productos_repo, pedidos_repo):
+    cliente = clientes_repo.agregar_cliente("Pedido User", "pedido@example.com")
+    prod1 = productos_repo.agregar_producto("Coffee A", 2.0)
+    prod2 = productos_repo.agregar_producto("Coffee B", 3.0)
+    
+    pedido = pedidos_repo.crear_pedido(cliente, [prod1, prod2])
+    
+    assert pedido.id is not None
+    assert len(pedido.productos) == 2
+    assert round(pedido.total,2) == 5.0
+    assert round(pedido.iva,2) == 0.65
+    assert round(pedido.total_final,2) == 5.65

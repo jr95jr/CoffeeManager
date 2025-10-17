@@ -1,57 +1,34 @@
 from sqlalchemy import Column, Integer, String, Float
-from sqlalchemy.exc import IntegrityError
-from .db import Base, engine, SessionLocal
+from .db import Base, Session
 
-# Modelo Producto
 class Producto(Base):
     __tablename__ = "productos"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    nombre = Column(String(100), nullable=False, unique=True)
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(100), nullable=False)
     precio = Column(Float, nullable=False)
 
-    def __repr__(self):
-        return f"<Producto(nombre='{self.nombre}', precio={self.precio})>"
-
-# Crear tabla
-def crear_tabla():
-    Base.metadata.create_all(bind=engine)
-
-# CRUD
-def agregar_producto(nombre, precio):
-    session = SessionLocal()
-    try:
-        nuevo = Producto(nombre=nombre, precio=precio)
-        session.add(nuevo)
-        session.commit()
-        session.refresh(nuevo)
-        return nuevo
-    except IntegrityError:
-        session.rollback()
-        return None  # Ya existe
-    finally:
-        session.close()
-
-def obtener_productos():
-    session = SessionLocal()
-    productos = session.query(Producto).all()
-    session.close()
-    return productos
-
-# Repository
 class ProductoRepository:
     def __init__(self):
-        crear_tabla()
+        self.session = Session()
 
-    def crear(self, nombre, precio):
-        return agregar_producto(nombre, precio)
+    def agregar_producto(self, nombre, precio):
+        producto = Producto(nombre=nombre, precio=precio)
+        self.session.add(producto)
+        self.session.commit()
+        return producto
 
-    def listar(self):
-        return obtener_productos()
+    def listar_productos(self):
+        return self.session.query(Producto).all()
 
-    def obtener(self, producto_id):
-        productos = obtener_productos()
-        for p in productos:
-            if p.id == producto_id:
-                return p
-        return None
+    def actualizar_producto(self, producto_id, nombre, precio):
+        producto = self.session.get(Producto, producto_id)
+        if producto:
+            producto.nombre = nombre
+            producto.precio = precio
+            self.session.commit()
+
+    def eliminar_producto(self, producto_id):
+        producto = self.session.get(Producto, producto_id)
+        if producto:
+            self.session.delete(producto)
+            self.session.commit()

@@ -1,102 +1,127 @@
 import streamlit as st
 from app.cliente import ClienteRepository
 from app.producto import ProductoRepository
-from app.pedido import Pedido
-from app.facturacion import calcular_factura
+from app.pedido import PedidoRepository
 
-# Repositorios en memoria
+# Inicializar repositorios
 if "clientes_repo" not in st.session_state:
     st.session_state["clientes_repo"] = ClienteRepository()
 if "productos_repo" not in st.session_state:
     st.session_state["productos_repo"] = ProductoRepository()
-if "pedidos" not in st.session_state:
-    st.session_state["pedidos"] = {}
+if "pedidos_repo" not in st.session_state:
+    st.session_state["pedidos_repo"] = PedidoRepository()
 
 clientes_repo = st.session_state["clientes_repo"]
 productos_repo = st.session_state["productos_repo"]
-pedidos_store = st.session_state["pedidos"]
+pedidos_repo = st.session_state["pedidos_repo"]
 
-st.title("CoffeeManager - Gestión de Pedidos")
+# Menú lateral
+st.sidebar.title("Menú")
+opcion = st.sidebar.radio("Selecciona una opción", ["Clientes", "Productos", "Pedidos"])
 
-menu = st.sidebar.selectbox("Menú", ["Registrar cliente", "Registrar producto", "Crear pedido", "Listar clientes", "Listar productos"])
+# ------------------ CLIENTES ------------------
+if opcion == "Clientes":
+    st.header("Gestión de Clientes")
+    accion = st.radio("Acción", ["Listar", "Crear", "Actualizar", "Eliminar"], horizontal=True)
 
-# Registrar Cliente
-if menu == "Registrar cliente":
-    st.header("Registrar cliente")
-    nombre = st.text_input("Nombre")
-    correo = st.text_input("Correo")
-    telefono = st.text_input("Teléfono")
-    direccion = st.text_input("Dirección")
-    if st.button("Guardar cliente"):
-        if not nombre or not correo:
-            st.warning("Nombre y correo son obligatorios")
-        else:
-            c = clientes_repo.crear(nombre, correo, telefono, direccion)
-            if c:
-                st.success(f"Cliente registrado (ID {c.id})")
+    if accion == "Crear":
+        nombre = st.text_input("Nombre")
+        correo = st.text_input("Correo")
+        telefono = st.text_input("Teléfono")
+        direccion = st.text_input("Dirección")
+        if st.button("Agregar Cliente"):
+            clientes_repo.agregar_cliente(nombre, correo, telefono, direccion)
+            st.success(f"Cliente {nombre} agregado.")
+
+    elif accion == "Listar":
+        clientes = clientes_repo.listar_clientes()
+        for c in clientes:
+            with st.expander(f"{c.id} - {c.nombre}"):
+                st.write(f"Correo: {c.correo}")
+                st.write(f"Teléfono: {c.telefono}")
+                st.write(f"Dirección: {c.direccion}")
+
+    elif accion == "Actualizar":
+        clientes = clientes_repo.listar_clientes()
+        cliente_sel = st.selectbox("Selecciona cliente", clientes, format_func=lambda c: f"{c.id} - {c.nombre}")
+        nuevo_nombre = st.text_input("Nuevo nombre", cliente_sel.nombre)
+        nuevo_correo = st.text_input("Nuevo correo", cliente_sel.correo)
+        nuevo_telefono = st.text_input("Nuevo teléfono", cliente_sel.telefono)
+        nueva_direccion = st.text_input("Nueva dirección", cliente_sel.direccion)
+        if st.button("Actualizar Cliente"):
+            clientes_repo.actualizar_cliente(cliente_sel.id, nuevo_nombre, nuevo_correo, nuevo_telefono, nueva_direccion)
+            st.success(f"Cliente {cliente_sel.id} actualizado.")
+
+    elif accion == "Eliminar":
+        clientes = clientes_repo.listar_clientes()
+        cliente_sel = st.selectbox("Selecciona cliente", clientes, format_func=lambda c: f"{c.id} - {c.nombre}")
+        if st.button("Eliminar Cliente"):
+            clientes_repo.eliminar_cliente(cliente_sel.id)
+            st.success(f"Cliente {cliente_sel.id} eliminado.")
+
+# ------------------ PRODUCTOS ------------------
+elif opcion == "Productos":
+    st.header("Gestión de Productos")
+    accion = st.radio("Acción", ["Listar", "Crear", "Actualizar", "Eliminar"], horizontal=True)
+
+    if accion == "Crear":
+        nombre = st.text_input("Nombre")
+        precio = st.number_input("Precio", min_value=0.0, format="%.2f")
+        if st.button("Agregar Producto"):
+            productos_repo.agregar_producto(nombre, precio)
+            st.success(f"Producto {nombre} agregado.")
+
+    elif accion == "Listar":
+        productos = productos_repo.listar_productos()
+        for p in productos:
+            with st.expander(f"{p.id} - {p.nombre}"):
+                st.write(f"Precio: ${p.precio:.2f}")
+
+    elif accion == "Actualizar":
+        productos = productos_repo.listar_productos()
+        producto_sel = st.selectbox("Selecciona producto", productos, format_func=lambda p: f"{p.id} - {p.nombre}")
+        nuevo_nombre = st.text_input("Nuevo nombre", producto_sel.nombre)
+        nuevo_precio = st.number_input("Nuevo precio", value=producto_sel.precio, min_value=0.0, format="%.2f")
+        if st.button("Actualizar Producto"):
+            productos_repo.actualizar_producto(producto_sel.id, nuevo_nombre, nuevo_precio)
+            st.success(f"Producto {producto_sel.id} actualizado.")
+
+    elif accion == "Eliminar":
+        productos = productos_repo.listar_productos()
+        producto_sel = st.selectbox("Selecciona producto", productos, format_func=lambda p: f"{p.id} - {p.nombre}")
+        if st.button("Eliminar Producto"):
+            productos_repo.eliminar_producto(producto_sel.id)
+            st.success(f"Producto {producto_sel.id} eliminado.")
+
+# ------------------ PEDIDOS ------------------
+elif opcion == "Pedidos":
+    st.header("Gestión de Pedidos")
+    accion = st.radio("Acción", ["Listar", "Crear", "Eliminar"], horizontal=True)
+
+    if accion == "Crear":
+        clientes = clientes_repo.listar_clientes()
+        productos = productos_repo.listar_productos()
+        cliente_sel = st.selectbox("Selecciona Cliente", clientes, format_func=lambda c: f"{c.id} - {c.nombre}")
+        productos_sel = st.multiselect("Selecciona Productos", productos, format_func=lambda p: f"{p.id} - {p.nombre} (${p.precio})")
+        if st.button("Crear Pedido"):
+            if productos_sel:
+                pedidos_repo.crear_pedido(cliente_sel, productos_sel)
+                st.success("Pedido creado exitosamente.")
             else:
-                st.error("Cliente ya existe")
+                st.error("Debes seleccionar al menos un producto.")
 
-# Registrar Producto
-elif menu == "Registrar producto":
-    st.header("Registrar producto")
-    nombre = st.text_input("Nombre del producto")
-    precio = st.number_input("Precio", min_value=0.0, format="%.2f")
-    if st.button("Guardar producto"):
-        if not nombre:
-            st.warning("Ingrese nombre")
-        else:
-            p = productos_repo.crear(nombre, precio)
-            if p:
-                st.success(f"Producto registrado (ID {p.id})")
-            else:
-                st.error("Producto ya existe")
+    elif accion == "Listar":
+        pedidos = pedidos_repo.listar_pedidos()
+        for p in pedidos:
+            with st.expander(f"Pedido {p.id} - Cliente: {p.cliente.nombre}"):
+                st.write(f"Total: ${p.total_final:.2f}")
+                st.write("Productos:")
+                for prod in p.productos:
+                    st.write(f"- {prod.nombre} (${prod.precio:.2f})")
 
-# Crear Pedido
-elif menu == "Crear pedido":
-    st.header("Crear pedido")
-    clientes = clientes_repo.listar()
-    productos = productos_repo.listar()
-    if not clientes:
-        st.info("No hay clientes. Registra uno antes.")
-    if not productos:
-        st.info("No hay productos. Registra alguno antes.")
-
-    cliente_sel = st.selectbox("Cliente", options=[(c.id, c.nombre) for c in clientes], format_func=lambda x: x[1] if x else "")
-    producto_sel = st.selectbox("Producto", options=[(p.id, p.nombre, p.precio) for p in productos], format_func=lambda x: f"{x[1]} - ${x[2]:.2f}" if x else "")
-    cantidad = st.number_input("Cantidad", min_value=1, value=1, step=1)
-    if st.button("Agregar al pedido"):
-        if cliente_sel and producto_sel:
-            cliente_id = cliente_sel[0]
-            producto_id = producto_sel[0]
-            producto = productos_repo.obtener(producto_id)
-            pedido = pedidos_store.get(cliente_id)
-            if pedido is None:
-                pedido = Pedido(id=len(pedidos_store)+1, cliente_id=cliente_id)
-                pedidos_store[cliente_id] = pedido
-            pedido.agregar_producto(producto, cantidad)
-            st.success("Producto agregado al pedido")
-
-    st.subheader("Pedidos actuales")
-    for cid, ped in pedidos_store.items():
-        st.markdown(f"**Pedido {ped.id} - Cliente {cid}**")
-        for it in ped.items:
-            st.write(f"- {it.producto.nombre} x{it.cantidad} = ${it.producto.precio * it.cantidad:.2f}")
-        sub = ped.subtotal()
-        s, iva, total = calcular_factura(sub)
-        st.write(f"Subtotal: ${s:.2f}  |  IVA(13%): ${iva:.2f}  |  Total: ${total:.2f}")
-        if st.button(f"Eliminar pedido {ped.id}", key=f"del_{ped.id}"):
-            del pedidos_store[cid]
-            st.experimental_rerun()
-
-# Listar Clientes
-elif menu == "Listar clientes":
-    st.header("Clientes")
-    for c in clientes_repo.listar():
-        st.write(f"{c.id} - {c.nombre} | Correo: {c.correo} | Tel: {c.telefono} | Dir: {c.direccion}")
-
-# Listar Productos
-elif menu == "Listar productos":
-    st.header("Productos")
-    for p in productos_repo.listar():
-        st.write(f"{p.id} - {p.nombre} | Precio: ${p.precio:.2f}")
+    elif accion == "Eliminar":
+        pedidos = pedidos_repo.listar_pedidos()
+        pedido_sel = st.selectbox("Selecciona Pedido", pedidos, format_func=lambda p: f"{p.id} - Cliente: {p.cliente.nombre}")
+        if st.button("Eliminar Pedido"):
+            pedidos_repo.eliminar_pedido(pedido_sel.id)
+            st.success(f"Pedido {pedido_sel.id} eliminado.")

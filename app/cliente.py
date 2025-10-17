@@ -1,59 +1,38 @@
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.exc import IntegrityError
-from .db import Base, engine, SessionLocal
+from .db import Base, Session
 
-# Modelo Cliente
 class Cliente(Base):
     __tablename__ = "clientes"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
     nombre = Column(String(100), nullable=False)
-    correo = Column(String(100), unique=True, nullable=False)
-    telefono = Column(String(20), nullable=True)
-    direccion = Column(String(100), nullable=True)
+    correo = Column(String(100), nullable=False)
+    telefono = Column(String(20))
+    direccion = Column(String(200))
 
-    def __repr__(self):
-        return f"<Cliente(nombre='{self.nombre}', correo='{self.correo}')>"
-
-# Crear tabla
-def crear_tabla():
-    Base.metadata.create_all(bind=engine)
-
-# CRUD
-def agregar_cliente(nombre, correo, telefono=None, direccion=None):
-    session = SessionLocal()
-    try:
-        nuevo = Cliente(nombre=nombre, correo=correo, telefono=telefono, direccion=direccion)
-        session.add(nuevo)
-        session.commit()
-        session.refresh(nuevo)
-        return nuevo
-    except IntegrityError:
-        session.rollback()
-        return None  # Ya existe
-    finally:
-        session.close()
-
-def obtener_clientes():
-    session = SessionLocal()
-    clientes = session.query(Cliente).all()
-    session.close()
-    return clientes
-
-# Repository
 class ClienteRepository:
     def __init__(self):
-        crear_tabla()
+        self.session = Session()
 
-    def crear(self, nombre, correo, telefono=None, direccion=None):
-        return agregar_cliente(nombre, correo, telefono, direccion)
+    def agregar_cliente(self, nombre, correo, telefono, direccion):
+        cliente = Cliente(nombre=nombre, correo=correo, telefono=telefono, direccion=direccion)
+        self.session.add(cliente)
+        self.session.commit()
+        return cliente
 
-    def listar(self):
-        return obtener_clientes()
+    def listar_clientes(self):
+        return self.session.query(Cliente).all()
 
-    def obtener(self, cliente_id):
-        clientes = obtener_clientes()
-        for c in clientes:
-            if c.id == cliente_id:
-                return c
-        return None
+    def actualizar_cliente(self, cliente_id, nombre, correo, telefono, direccion):
+        cliente = self.session.get(Cliente, cliente_id)
+        if cliente:
+            cliente.nombre = nombre
+            cliente.correo = correo
+            cliente.telefono = telefono
+            cliente.direccion = direccion
+            self.session.commit()
+
+    def eliminar_cliente(self, cliente_id):
+        cliente = self.session.get(Cliente, cliente_id)
+        if cliente:
+            self.session.delete(cliente)
+            self.session.commit()
