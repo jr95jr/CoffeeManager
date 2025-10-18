@@ -1,4 +1,2 @@
 streamlit
-sqlalchemy
-pymysql
-pytest
+SQLAlchemy==2.0.20

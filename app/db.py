@@ -1,14 +1,9 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Conexión a la base de datos MySQL que ya creaste
-USER = "root"
-PASSWORD = "76377820"
-HOST = "localhost"
-PORT = "3306"
-DB_NAME = "coffee_manager"
+# Base de datos SQLite embebida (no necesita servidor)
+DATABASE_URL = "sqlite:///coffee_manager.db"
 
-engine = create_engine(f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}", echo=True)
+engine = create_engine(DATABASE_URL, echo=False)
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
