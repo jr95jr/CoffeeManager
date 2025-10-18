@@ -2,6 +2,12 @@ import streamlit as st
 from app.cliente import ClienteRepository
 from app.producto import ProductoRepository
 from app.pedido import PedidoRepository
+from app.db import Base, engine
+from app.cliente import Cliente
+from app.producto import Producto
+from app.pedido import Pedido
+
+Base.metadata.create_all(bind=engine)
 
 # Inicializar repositorios
 if "clientes_repo" not in st.session_state:
